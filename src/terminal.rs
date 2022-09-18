@@ -60,7 +60,11 @@ impl Terminal {
         print!("{}", color::Bg(color::Reset));
     }
 
-    #[allow(clippy::cast_possible_truncation)]
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::as_conversions,
+        clippy::pattern_type_mismatch
+    )]
     pub fn cursor_position(pos: &Position) {
         let Position { mut x, mut y } = pos;
         x = x.saturating_add(1);
