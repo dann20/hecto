@@ -10,17 +10,7 @@
     clippy::std_instead_of_core
 )]
 
-mod document;
-mod editor;
-mod row;
-mod terminal;
-
-use editor::Editor;
-
-pub use document::Document;
-pub use editor::Position;
-pub use row::Row;
-pub use terminal::Terminal;
+use hecto::Editor;
 
 fn main() {
     Editor::default().run();
