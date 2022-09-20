@@ -368,7 +368,8 @@ impl Editor {
             modified_indicator
         );
         let line_indicator = format!(
-            "{}/{}",
+            "{} | {}/{}",
+            self.document.filetype(),
             self.cursor_position.y.saturating_add(1),
             self.document.len()
         );

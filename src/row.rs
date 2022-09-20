@@ -4,6 +4,7 @@ use termion::color;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::highlighting;
+use crate::HighlightingOptions;
 use crate::SearchDirection;
 
 #[derive(Default)]
@@ -182,7 +183,7 @@ impl Row {
         None
     }
 
-    pub fn highlight(&mut self, word: Option<&str>) {
+    pub fn highlight(&mut self, opts: HighlightingOptions, word: Option<&str>) {
         let mut highlighting = Vec::new();
         let chars: Vec<char> = self.string.chars().collect();
         let mut matches = Vec::new();
@@ -200,6 +201,8 @@ impl Row {
             }
         }
 
+        let mut prev_is_separator = true;
+        let mut in_string = false;
         let mut index = 0;
         while let Some(c) = chars.get(index) {
             if let Some(word) = word {
@@ -212,11 +215,82 @@ impl Row {
                 }
             }
 
-            if c.is_ascii_digit() {
-                highlighting.push(highlighting::Type::Number);
+            let previous_highlight = if index > 0 {
+                highlighting
+                    .get(index - 1)
+                    .unwrap_or(&highlighting::Type::None)
+            } else {
+                &highlighting::Type::None
+            };
+            if opts.characters() && !in_string && *c == '\'' {
+                prev_is_separator = true;
+                if let Some(next_char) = chars.get(index.saturating_add(1)) {
+                    let closing_index = if *next_char == '\\' {
+                        index.saturating_add(3)
+                    } else {
+                        index.saturating_add(2)
+                    };
+                    if let Some(closing_char) = chars.get(closing_index) {
+                        if *closing_char == '\'' {
+                            for _ in 0..=closing_index.saturating_sub(index) {
+                                highlighting.push(highlighting::Type::Character);
+                                index += 1;
+                            }
+                            continue;
+                        }
+                    }
+                }
+                highlighting.push(highlighting::Type::None);
+                index += 1;
+                continue;
+            }
+            if opts.strings() {
+                if in_string {
+                    highlighting.push(highlighting::Type::String);
+                    if *c == '\\' && index < self.len().saturating_sub(1) {
+                        highlighting.push(highlighting::Type::String);
+                        index += 2;
+                        continue;
+                    }
+                    if *c == '"' {
+                        in_string = false;
+                        prev_is_separator = true;
+                    } else {
+                        prev_is_separator = false;
+                    }
+                    index += 1;
+                    continue;
+                } else if prev_is_separator && *c == '"' {
+                    highlighting.push(highlighting::Type::String);
+                    in_string = true;
+                    prev_is_separator = true;
+                    index += 1;
+                    continue;
+                }
+            }
+            if opts.comments() && *c == '/' {
+                if let Some(next_char) = chars.get(index.saturating_add(1)) {
+                    if *next_char == '/' {
+                        for _ in index..chars.len() {
+                            highlighting.push(highlighting::Type::Comment);
+                        }
+                        break;
+                    }
+                }
+            }
+            if opts.numbers() {
+                if (c.is_ascii_digit()
+                    && (prev_is_separator || *previous_highlight == highlighting::Type::Number))
+                    || (*c == '.' && *previous_highlight == highlighting::Type::Number)
+                {
+                    highlighting.push(highlighting::Type::Number);
+                } else {
+                    highlighting.push(highlighting::Type::None);
+                }
             } else {
                 highlighting.push(highlighting::Type::None);
             }
+            prev_is_separator = c.is_ascii_punctuation() || c.is_ascii_whitespace();
             index += 1;
         }
 
