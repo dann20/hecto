@@ -253,7 +253,7 @@ impl Row {
                     continue;
                 }
             }
-            if self.highlight_str(index, &word, chars, hl_type) {
+            if self.highlight_str(index, word, chars, hl_type) {
                 return true;
             }
         }
@@ -455,15 +455,15 @@ impl Row {
         }
 
         while let Some(c) = chars.get(index) {
-            if self.highlight_multiline_comment(&mut index, &opts, *c, &chars) {
+            if self.highlight_multiline_comment(&mut index, opts, *c, &chars) {
                 in_ml_comment = true;
                 continue;
             }
             in_ml_comment = false;
             if self.highlight_char(&mut index, opts, *c, &chars)
                 || self.highlight_comment(&mut index, opts, *c, &chars)
-                || self.highlight_primary_keywords(&mut index, &opts, &chars)
-                || self.highlight_secondary_keywords(&mut index, &opts, &chars)
+                || self.highlight_primary_keywords(&mut index, opts, &chars)
+                || self.highlight_secondary_keywords(&mut index, opts, &chars)
                 || self.highlight_string(&mut index, opts, *c, &chars)
                 || self.highlight_number(&mut index, opts, *c, &chars)
             {
